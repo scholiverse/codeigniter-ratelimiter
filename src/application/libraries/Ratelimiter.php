@@ -33,7 +33,7 @@ class Ratelimiter extends Ratelimiter_Abstract {
 		// Verify if user is already blocked
 		$already_blocked = $this->verify_if_already_blocked($data);
 		if($already_blocked) {
-			$response = array('success' => false, 'already_blocked' => true, 'message' => 'User/IP blocked.', 'blocked_till' => $already_blocked);
+			$response = array('success' => false, 'already_blocked' => true, 'message' => 'User/IP blocked', 'blocked_till' => $already_blocked);
 			return $this->send_response($response);
 		}
 
@@ -51,7 +51,7 @@ class Ratelimiter extends Ratelimiter_Abstract {
 			if($should_be_blocked) {
 				$response = array(
 					'success' => false,
-					'message' => 'User/IP blocked.',
+					'message' => 'User/IP blocked',
 					'blocked_on_this_request' => $request_log->blocked_on_this_request,
 					'blocked_till' => $request_log->blocked_till,
 				);
