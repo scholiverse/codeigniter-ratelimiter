@@ -45,14 +45,19 @@ $this->ratelimiter->clean_logs();
 ```
 
 ## Response
-#### allow_request() method
-##### returns array/json/object (based on config) with the following keys-
-success - (bool) allow/deny request.
+### allow_request() method
+#### returns array/json/object (based on config) with the following keys-
+success - (bool) allow/deny request
+
 blocked_till - (string) if success = false, timestamp in Y-m-d H:i:s format
+
 already_blocked - (bool) if success = false and user is already blocked
+
 blocked_on_this_request - (bool) if success = false and user is blocked on this request
+
 blacklisted_ip - (bool) if success false and ip is blacklisted
-message - (string) if success false, a message if the user is blocked.
+
+message - (string) if success false, a message if the user is blocked
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
