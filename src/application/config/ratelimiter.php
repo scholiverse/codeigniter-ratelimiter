@@ -2,9 +2,10 @@
 defined('BASEPATH') OR exit('No direct script access allowed');
 
 /*
-*	Ratelimit Table
-*	Name of the table used to log and verify requests
+*	DB Connection and Ratelimit Table
+*	Name of the connection and table used to log and verify requests
 */
+$config['database_connection'] = 'default';
 $config['ratelimit_table'] = 'rate_limiter';
 
 /*

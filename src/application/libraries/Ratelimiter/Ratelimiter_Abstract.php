@@ -22,12 +22,14 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 			!$configuration->item('block_duration') ||
 			!is_array($configuration->item('resource')) ||
 			!is_array($configuration->item('user_data')) ||
-			!$configuration->item('response_type')
+			!$configuration->item('response_type') ||
+			!$configuration->item('database_connection')
 		) {
 			throw new \Exception("Invalid Configuration");
 			exit;
 		}
 
+		$this->database = $this->CI->load->database($configuration->item('database_connection'), TRUE);
 		$this->table = $configuration->item('ratelimit_table');
 		$this->history_backup = $configuration->item('history_backup');
 		$this->history_table = $configuration->item('ratelimit_history_table');
@@ -57,7 +59,7 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 
 		$this->prepare_blocking_sqls($sql, $sql_data, $data);
 
-		$result = $this->CI->db->query($sql, $sql_data)->row();
+		$result = $this->database->query($sql, $sql_data)->row();
 		if($result && $result->blocked_till)
 			return $result->blocked_till;
 		return FALSE;
@@ -78,7 +80,7 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 
 		$this->prepare_blocking_sqls($sql, $sql_data, $data);
 
-		$result = $this->CI->db->query($sql, $sql_data)->row();
+		$result = $this->database->query($sql, $sql_data)->row();
 		return (int)$result->count >= $this->requests;
 	}
 
@@ -116,7 +118,7 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		$sql = str_replace("VALUES_PLACEHOLDER", $values_placeholder, $sql);
 
 		$response = new \stdClass();
-		$response->success = (bool)$this->CI->db->query($sql, $sql_data);
+		$response->success = (bool)$this->database->query($sql, $sql_data);
 		$response->blocked_on_this_request = $should_be_blocked;
 		$response->blocked_till = $should_be_blocked ? $blocked_till : NULL;
 
