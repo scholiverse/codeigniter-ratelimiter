@@ -28,9 +28,9 @@ $config['insert_chunk_size'] = 50;
 *
 *	NOTE: Per is used as the maximum time limit. All the requests previous to 'Per' will be sent to History Table.
 */
-$config['requests'] = 100;
+$config['requests'] = 500;
 $config['duration'] = 5*60;
-$config['block_duration'] = 30;
+$config['block_duration'] = 60;
 
 /*
 *	Resource and User Data
@@ -49,3 +49,11 @@ $config['user_data'] = array('user_id' => TRUE);
 */
 $config['whitelist_ips'] = array();
 $config['blacklist_ips'] = array();
+
+/*
+*	Response Type
+*	Defines the response type of library
+*
+*	Possible Values = 'object', 'json', 'array;
+*/
+$config['response_type'] = 'object';

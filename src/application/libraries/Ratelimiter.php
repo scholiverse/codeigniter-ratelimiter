@@ -5,11 +5,15 @@ require_once('Ratelimiter/Ratelimiter_Abstract.php');
 
 class Ratelimiter extends Ratelimiter_Abstract {
 	public function allow_request(Array $data = array()) {
-		if($this->ip_is_blacklisted())
-			return FALSE;
+		if($this->ip_is_blacklisted()) {
+			$response = array('success' => false, 'blacklisted_ip' => true, 'message' => 'IP is blacklisted');
+			return $this->send_response($response);
+		}
 
-		if(strtolower($_SERVER['REQUEST_METHOD']) !== 'post' || $this->ip_is_whitelisted())
-			return TRUE;
+		if(strtolower($_SERVER['REQUEST_METHOD']) !== 'post' || $this->ip_is_whitelisted()) {
+			$response = array('success' => true);
+			return $this->send_response($response);
+		}
 
 		foreach($this->resource as $key => $resource) {
 			if($resource && !isset($data[$key])) {
@@ -27,8 +31,11 @@ class Ratelimiter extends Ratelimiter_Abstract {
 			$this->block_duration = $data['block_duration'];
 
 		// Verify if user is already blocked
-		if($this->verify_if_already_blocked($data))
-			return FALSE;
+		$already_blocked = $this->verify_if_already_blocked($data);
+		if($already_blocked) {
+			$response = array('success' => false, 'already_blocked' => true, 'message' => 'User/IP blocked.', 'blocked_till' => $already_blocked);
+			return $this->send_response($response);
+		}
 
 		// Check and log if the should be blocked.
 		$should_be_blocked = $this->verify_if_should_be_blocked($data);
@@ -40,8 +47,20 @@ class Ratelimiter extends Ratelimiter_Abstract {
 			$this->{$config} = $configuration->item($config);
 
 		// Return response if request log is built successfully, else throw an error.
-		if($request_log)
-			return !$should_be_blocked;	//	Should be blocked = !Allow request
+		if($request_log && $request_log->success) {
+			if($should_be_blocked) {
+				$response = array(
+					'success' => false,
+					'message' => 'User/IP blocked.',
+					'blocked_on_this_request' => $request_log->blocked_on_this_request,
+					'blocked_till' => $request_log->blocked_till,
+				);
+			} else {
+				$response = array('success' => true);
+			}
+
+			return $this->send_response($response);
+		}
 
 		throw new \Exception("Error Processing Request");
 		exit;

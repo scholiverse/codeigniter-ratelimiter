@@ -12,7 +12,7 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		$this->CI = &get_instance();
 		$this->CI->config->load('ratelimiter');
 
-		$this->configurable = array('requests','duration','block_duration','resource','user_data', 'whitelist_ips', 'blacklist_ips');
+		$this->configurable = array('requests','duration','block_duration','resource','user_data', 'whitelist_ips', 'blacklist_ips', 'response_type');
 		$configuration = $this->CI->config;
 
 		if(
@@ -21,7 +21,8 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 			!$configuration->item('duration') ||
 			!$configuration->item('block_duration') ||
 			!is_array($configuration->item('resource')) ||
-			!is_array($configuration->item('user_data'))
+			!is_array($configuration->item('user_data')) ||
+			!$configuration->item('response_type')
 		) {
 			throw new \Exception("Invalid Configuration");
 			exit;
@@ -31,7 +32,8 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		$this->history_backup = $configuration->item('history_backup');
 		$this->history_table = $configuration->item('ratelimit_history_table');
 		$this->sql = array(
-			'blocking' => "SELECT COUNT(*) AS `count` FROM RATE_LIMIT_TABLE",
+			'already_blocked' => "SELECT `blocked_till` FROM RATE_LIMIT_TABLE",
+			'request_count' => "SELECT COUNT(*) AS `count` FROM RATE_LIMIT_TABLE",
 			'logging' => "INSERT INTO RATE_LIMIT_TABLE (FIELDS_PLACEHOLDER) VALUES (VALUES_PLACEHOLDER)",
 		);
 		foreach($this->sql as $key => $sql) {
@@ -50,14 +52,14 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 	*	@return boolean
 	*/
 	protected function verify_if_already_blocked(Array $data) {
-		$sql = $this->sql['blocking'] . " WHERE `blocked_till` > ?";
+		$sql = $this->sql['already_blocked'] . " WHERE `blocked_till` > ?";
 		$sql_data['blocked_till'] = date('Y-m-d H:i:s');
 
 		$this->prepare_blocking_sqls($sql, $sql_data, $data);
 
 		$result = $this->CI->db->query($sql, $sql_data)->row();
-		if((int) $result->count > 0)
-			return TRUE;
+		if($result && $result->blocked_till)
+			return $result->blocked_till;
 		return FALSE;
 	}
 
@@ -71,7 +73,7 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		if($this->requests == 0)
 			return FALSE;
 
-		$sql = $this->sql['blocking'] . " WHERE `created_at` > ?";
+		$sql = $this->sql['request_count'] . " WHERE `created_at` > ?";
 		$sql_data['created_at'] = date('Y-m-d H:i:s', strtotime("- {$this->duration} minutes"));
 
 		$this->prepare_blocking_sqls($sql, $sql_data, $data);
@@ -113,7 +115,12 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		$sql = str_replace("FIELDS_PLACEHOLDER", $fields_placeholder, $sql);
 		$sql = str_replace("VALUES_PLACEHOLDER", $values_placeholder, $sql);
 
-		return (bool)$this->CI->db->query($sql, $sql_data);
+		$response = new \stdClass();
+		$response->success = (bool)$this->CI->db->query($sql, $sql_data);
+		$response->blocked_on_this_request = $should_be_blocked;
+		$response->blocked_till = $should_be_blocked ? $blocked_till : NULL;
+
+		return $response;
 	}
 
 	/**
@@ -179,7 +186,6 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		return in_array($this->get_client_ip(), $this->whitelist_ips);
 	}
 
-
 	/**
 	*	Returns TRUE if client's IP address is in blacklisted IPs array
 	*
@@ -187,5 +193,33 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 	*/
 	protected function ip_is_blacklisted() {
 		return in_array($this->get_client_ip(), $this->blacklist_ips);
+	}
+
+	/**
+	*	Returns response from the library in desired format
+	*
+	*	@param array
+	*	@return mixed
+	*/
+	protected function send_response($data) {
+		switch (strtolower($this->response_type)) {
+			case 'object':
+				$response = new \stdClass();
+				foreach($data as $key => $value)
+					$response->{$key} = $value;
+
+				return $response;
+				break;
+
+			case 'json':
+				header('Content-Type: application/json');
+				return json_encode($data);
+				break;
+
+			case 'array':
+			default:
+				return $data;
+				break;
+		}
 	}
 }
