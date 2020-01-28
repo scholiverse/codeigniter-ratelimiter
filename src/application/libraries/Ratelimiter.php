@@ -79,17 +79,17 @@ class Ratelimiter extends Ratelimiter_Abstract {
 		$timestamp = date('Y-m-d H:i:s', strtotime("- {$duration} minutes"));
 		if($this->history_backup) {
 			$fetch_old_sql = "SELECT * FROM `{$this->table}` WHERE `created_at` < ?";
-			$result = $this->CI->db->query($fetch_old_sql, array('created_at' => $timestamp))->result_array();
+			$result = $this->database->query($fetch_old_sql, array('created_at' => $timestamp))->result_array();
 
 			if($result) {
 				$chunked_array = array_chunk($result, $insert_chunk_size);
 
 				foreach($chunked_array as $chunk) {
-					$this->CI->db->insert_batch($this->history_table, $chunk);
+					$this->database->insert_batch($this->history_table, $chunk);
 				}
 			}
 
-			$this->CI->db->query("DELETE FROM `{$this->table}` WHERE `created_at` < ?", array('created_at' => $timestamp));
+			$this->database->query("DELETE FROM `{$this->table}` WHERE `created_at` < ?", array('created_at' => $timestamp));
 		}
 	}
 }

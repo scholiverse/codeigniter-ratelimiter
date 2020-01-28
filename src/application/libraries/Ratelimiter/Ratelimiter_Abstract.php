@@ -101,11 +101,13 @@ abstract class Ratelimiter_Abstract implements Ratelimiter_Interface {
 		$sql_data = array(
 			'request_url' => $_SERVER['REQUEST_URI'],
 			'ip_address' => $this->get_client_ip(),
-			'blocked_till' => isset($blocked_till) ? $blocked_till : NULL
+			'blocked_till' => isset($blocked_till) ? $blocked_till : NULL,
+			'created_at' => date('Y-m-d H:i:s'),
+			'last_updated_at' => date('Y-m-d H:i:s'),
 		);
 
-		$fields_placeholder = "`request_url`, `ip_address`, `blocked_till`";
-		$values_placeholder = "?,?,?";
+		$fields_placeholder = "`request_url`, `ip_address`, `blocked_till`, `created_at`, `last_updated_at`";
+		$values_placeholder = "?,?,?,?,?";
 
 		foreach(array_merge($this->resource, $this->user_data) as $key => $resource) {
 			$fields_placeholder .= ", `$key`";
